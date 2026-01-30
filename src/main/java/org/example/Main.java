@@ -7,6 +7,8 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         TaskManager manager = new TaskManager();
 
+        manager.loadTasks();
+
         while (true) {
             System.out.println("Choose a number from the list below:");
             System.out.println("1. Add task");
@@ -31,6 +33,7 @@ public class Main {
                 case 4 -> manager.markTaskDone(scanner);
                 case 5 -> manager.editTask(scanner);
                 case 6 -> {
+                    manager.saveTasks();
                     System.out.println("Goodbye!");
                     return; // exit program
                 }

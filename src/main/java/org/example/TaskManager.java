@@ -1,7 +1,13 @@
 package org.example;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.Scanner;
 import java.util.ArrayList;
+import com.google.gson.Gson;
+import java.io.FileWriter;
+import java.io.IOException;
+import com.google.gson.reflect.TypeToken;
 
 
 public class TaskManager {
@@ -11,11 +17,25 @@ public class TaskManager {
         System.out.println(" Enter a task name");
         String name = scanner.nextLine();
 
-        System.out.println("Enter priority (HIGH / MEDIUM / LOW):");
-        String priority = getValidPriority(scanner);
+       Priority priority = null;
 
+       while (priority == null){
+           System.out.println("Enter priority (HIGH / MEDIUM / LOW):");
+           String input = scanner.nextLine().trim().toUpperCase();
+
+           //try converting to enum: Priority.valueOf(input)
+           //Converts string "HIGH" → enum Priority.HIGH
+           //If input is invalid, throws IllegalArgumentException
+
+           try{
+               priority = Priority.valueOf(input);
+           } catch (IllegalArgumentException e) {
+               System.out.println("Invalid priority! Must be HIGH, MEDIUM, or LOW. Try again.");
+           }
+       }
         Task newTask = new Task(name, priority);
         tasks.add(newTask);
+        System.out.println("Task added!");
     }
 
     public void viewTask() {
@@ -39,7 +59,7 @@ public class TaskManager {
         int taskNum = getValidTaskNumber(scanner);
 
         Task removedTask = tasks.remove(taskNum - 1);
-        System.out.println("Task" + removedTask.getName() + "deleted");
+        System.out.println("Task" + removedTask.getName() + "' deleted!");
     }
 
     public void markTaskDone(Scanner scanner) {
@@ -97,17 +117,31 @@ public class TaskManager {
                 System.out.println("Name updated!");
                 break;
             case 2: // Priority
-                System.out.println("Enter the new priority (HIGH / MEDIUM / LOW):");
-                String newPriority = getValidPriority(scanner);  // uses helper method
+                Priority newPriority = null;
+                while(newPriority == null) {
+                    System.out.println("Enter the new priority (HIGH / MEDIUM / LOW):");
+                    String input = scanner.nextLine().trim().toUpperCase();
+                    try {
+                        newPriority = Priority.valueOf(input);
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("Invalid priority! Must be HIGH, MEDIUM, or LOW. Try again.");
+                    }
+                }
                 task.setPriority(newPriority);
                 System.out.println("Priority updated!");
                 break;
+
             case 3: // Done status
                 System.out.println("Do you want to mark this task as done? (true/false):");
                 boolean doneStatus = Boolean.parseBoolean(scanner.nextLine());
                 task.setCompleted(doneStatus);
                 System.out.println("Done status updated!");
                 break;
+
+        default:
+        System.out.println("Invalid option! Try again.");
+        break;
+
         }
     }
 
@@ -139,20 +173,54 @@ public class TaskManager {
         }
         return num;
     }
+    public void saveTasks(){
+        Gson gson = new Gson();
+        try {
+            FileWriter writer = new FileWriter("tasks.json");
+            // FileWriter → Java class used to write TEXT to a file
+            // writer → an object (variable) that represents an open connection to a file
+            // "tasks.json" → the file path/name the writer is responsible for
+            // If the file does not exist → Java creates it
+            // If the file exists → Java opens it and overwrites its contents
 
-    private String getValidPriority(Scanner scanner) {
-        String priority;
-        while (true) {
-            priority = scanner.nextLine().trim();
-            String p = priority.toUpperCase();
-            if (p.equals("HIGH") || p.equals("MEDIUM") || p.equals("LOW")) {
-                break;
-            } else {
-                System.out.println("Invalid priority! Must be High, Medium, or Low. Try again.");
-            }
+            gson.toJson(tasks, writer);
+            // use my translator gson and translate the java objects in my tasks arraylist into Json
+            // save it in my FileWriter object called writer
 
+            writer.close();
+            //very important
+
+        }catch (IOException e){
+            //A general class for file-related error
+            //Covers Missing file, Permission issues, Disk errors
+            System.out.println("Could not save tasks.");
         }
-        return priority;
+    }
+
+    public void loadTasks(){
+        Gson gson = new Gson();
+        try{
+            FileReader reader = new FileReader("tasks.json");
+
+            tasks = gson.fromJson(reader, new TypeToken<ArrayList<Task>>(){}.getType());
+            // tasks → the ArrayList<Task> in memory that will store all loaded tasks
+            // gson.fromJson(...) → converts JSON text from the reader into Java objects
+            // reader → FileReader object pointing to "tasks.json", the source of JSON text
+            // new TypeToken<ArrayList<Task>>(){}.getType() → tells Gson:
+            //     "the JSON should become an ArrayList containing Task objects"
+            //      without this, Gson wouldn't know the type of the items in the list
+            // Result → tasks now contains all previously saved tasks
+
+            reader.close();
+        } catch (FileNotFoundException e){
+            // Happens if tasks.json doesn’t exist (first run)
+            tasks = new ArrayList<>(); // start fresh
+            System.out.println("No previous tasks found, starting with empty list.");
+        } catch (IOException e) {
+            //A general class for file-related error
+            // there can be multiple catches to a try
+            System.out.println("Could not load tasks.");
+        }
     }
 }
 
