@@ -5,9 +5,22 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        TaskManager manager = new TaskManager();
 
-        manager.loadTasks();
+        // the older version looked like this
+        // TaskManager manager = new TaskManager();
+        //TaskManager was self-contained, meaning:
+        //It created its own ArrayList<Task> internally.
+        //It loaded tasks itself from a hardcoded file (tasks.json) if the code had loadTasks() inside it.
+        //Main didn’t provide any storage information — TaskManager did everything itself.
+
+        // 1️⃣ Create a StorageManager first
+        StorageManager storage = new StorageManager("tasks.json");
+        // 2️⃣ Pass it to TaskManager
+        // Now TaskManager doesn’t know how storage works,
+        // it just knows: “I have a StorageManager, I can load/save tasks through it.”
+        TaskManager manager = new TaskManager(storage);
+
+
 
         while (true) {
             System.out.println("Choose a number from the list below:");
@@ -18,13 +31,7 @@ public class Main {
             System.out.println("5. Edit a task");
             System.out.println("6. Exit");
 
-            int choice = -1;
-            try {
-                choice = Integer.parseInt(scanner.nextLine());
-            } catch (NumberFormatException e) {
-                System.out.println("Not a valid number! Try again.");
-                continue; // go back to menu
-            }
+            int choice = manager.getValidatedMenuChoice(scanner);
 
             switch (choice) {
                 case 1 -> manager.addTask(scanner);

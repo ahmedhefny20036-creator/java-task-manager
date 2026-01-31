@@ -11,28 +11,53 @@ import com.google.gson.reflect.TypeToken;
 
 
 public class TaskManager {
-    ArrayList<Task> tasks = new ArrayList<>();
+    private ArrayList<Task> tasks;
+    // This is the in-memory list of tasks
+    // It will store all tasks while the program is running
+
+    private StorageManager storage;
+    // Reference to StorageManager (our "assistant" for reading/writing tasks)
+    // TaskManager doesn't know how storage works, it just delegates
+
+    // Constructor → called when creating a new TaskManager object
+    public TaskManager(StorageManager storage) {
+        this.storage = storage;           // Save the reference so we can use it in other methods
+        this.tasks = storage.loadTasks(); // Load tasks from storage at the start
+        // If storage file exists → tasks contains previous tasks
+        // If storage file doesn't exist → tasks will be a new empty list
+    }
+
+    public void saveTasks() {
+        storage.saveTasks(tasks);
+        // Pass the in-memory tasks list to StorageManager to save
+        // saveTasks method just delegates saving to StorageManager
+    }
+
+    // Why loadTasks() isn’t explicitly needed anymore
+    // We moved the actual loading logic to StorageManager, which knows how to read the JSON file.
+    // Now, the TaskManager constructor already calls storage.loadTasks() when a new TaskManager is created:
+    // This means that as soon as the TaskManager exists, tasks is already populated with whatever is in storage
 
     public void addTask(Scanner scanner) {
         System.out.println(" Enter a task name");
         String name = scanner.nextLine();
 
-       Priority priority = null;
+        Priority priority = null;
 
-       while (priority == null){
-           System.out.println("Enter priority (HIGH / MEDIUM / LOW):");
-           String input = scanner.nextLine().trim().toUpperCase();
+        while (priority == null) {
+            System.out.println("Enter priority (HIGH / MEDIUM / LOW):");
+            String input = scanner.nextLine().trim().toUpperCase();
 
-           //try converting to enum: Priority.valueOf(input)
-           //Converts string "HIGH" → enum Priority.HIGH
-           //If input is invalid, throws IllegalArgumentException
+            //try converting to enum: Priority.valueOf(input)
+            //Converts string "HIGH" → enum Priority.HIGH
+            //If input is invalid, throws IllegalArgumentException
 
-           try{
-               priority = Priority.valueOf(input);
-           } catch (IllegalArgumentException e) {
-               System.out.println("Invalid priority! Must be HIGH, MEDIUM, or LOW. Try again.");
-           }
-       }
+            try {
+                priority = Priority.valueOf(input);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid priority! Must be HIGH, MEDIUM, or LOW. Try again.");
+            }
+        }
         Task newTask = new Task(name, priority);
         tasks.add(newTask);
         System.out.println("Task added!");
@@ -118,7 +143,7 @@ public class TaskManager {
                 break;
             case 2: // Priority
                 Priority newPriority = null;
-                while(newPriority == null) {
+                while (newPriority == null) {
                     System.out.println("Enter the new priority (HIGH / MEDIUM / LOW):");
                     String input = scanner.nextLine().trim().toUpperCase();
                     try {
@@ -138,9 +163,9 @@ public class TaskManager {
                 System.out.println("Done status updated!");
                 break;
 
-        default:
-        System.out.println("Invalid option! Try again.");
-        break;
+            default:
+                System.out.println("Invalid option! Try again.");
+                break;
 
         }
     }
@@ -173,53 +198,16 @@ public class TaskManager {
         }
         return num;
     }
-    public void saveTasks(){
-        Gson gson = new Gson();
-        try {
-            FileWriter writer = new FileWriter("tasks.json");
-            // FileWriter → Java class used to write TEXT to a file
-            // writer → an object (variable) that represents an open connection to a file
-            // "tasks.json" → the file path/name the writer is responsible for
-            // If the file does not exist → Java creates it
-            // If the file exists → Java opens it and overwrites its contents
 
-            gson.toJson(tasks, writer);
-            // use my translator gson and translate the java objects in my tasks arraylist into Json
-            // save it in my FileWriter object called writer
-
-            writer.close();
-            //very important
-
-        }catch (IOException e){
-            //A general class for file-related error
-            //Covers Missing file, Permission issues, Disk errors
-            System.out.println("Could not save tasks.");
-        }
-    }
-
-    public void loadTasks(){
-        Gson gson = new Gson();
-        try{
-            FileReader reader = new FileReader("tasks.json");
-
-            tasks = gson.fromJson(reader, new TypeToken<ArrayList<Task>>(){}.getType());
-            // tasks → the ArrayList<Task> in memory that will store all loaded tasks
-            // gson.fromJson(...) → converts JSON text from the reader into Java objects
-            // reader → FileReader object pointing to "tasks.json", the source of JSON text
-            // new TypeToken<ArrayList<Task>>(){}.getType() → tells Gson:
-            //     "the JSON should become an ArrayList containing Task objects"
-            //      without this, Gson wouldn't know the type of the items in the list
-            // Result → tasks now contains all previously saved tasks
-
-            reader.close();
-        } catch (FileNotFoundException e){
-            // Happens if tasks.json doesn’t exist (first run)
-            tasks = new ArrayList<>(); // start fresh
-            System.out.println("No previous tasks found, starting with empty list.");
-        } catch (IOException e) {
-            //A general class for file-related error
-            // there can be multiple catches to a try
-            System.out.println("Could not load tasks.");
+    public int getValidatedMenuChoice(Scanner scanner) {
+        int choice = -1;
+        while (true) {
+            try {
+                choice = Integer.parseInt(scanner.nextLine());
+                return choice;
+            } catch (NumberFormatException e) {
+                System.out.println("Not a valid number! Try again.");
+            }
         }
     }
 }
